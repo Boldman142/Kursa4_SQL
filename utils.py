@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any
 
 import psycopg2
@@ -149,3 +150,52 @@ def save_data_to_database(data: list[dict[str, Any]], database_name: str, params
                 )
     conn.commit()
     conn.close()
+
+
+class DBMForm(ABC):
+
+    @abstractmethod
+    def get_companies_and_vacancies_count(self):
+        """Получает список всех компаний и количество вакансий у каждой компании."""
+        pass
+
+    @abstractmethod
+    def get_all_vacancies(self):
+        """Получает список всех вакансий с указанием названия компании, названия вакансии и зарплаты и ссылки на вакансию."""
+        pass
+
+    @abstractmethod
+    def get_avg_salary(self):
+        """Получает среднюю зарплату по вакансиям."""
+        pass
+
+    @abstractmethod
+    def get_vacancies_with_higher_salary(self):
+        """Получает список всех вакансий, у которых зарплата выше средней по всем вакансиям."""
+        pass
+
+    @abstractmethod
+    def get_vacancies_with_keyword(self):
+        """Получает список всех вакансий, в названии которых содержатся переданные в метод слова, например python."""
+        pass
+
+
+class DBManager(DBMForm):
+
+    def __init__(self):
+        pass
+
+    def get_companies_and_vacancies_count(self):
+        pass
+
+    def get_all_vacancies(self):
+        pass
+
+    def get_avg_salary(self):
+        pass
+
+    def get_vacancies_with_higher_salary(self):
+        pass
+
+    def get_vacancies_with_keyword(self):
+        pass
