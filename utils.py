@@ -19,38 +19,52 @@ def get_hh_data(ids: list):
             'site': req_emp.get('site_url'),
             'url_hh': req_emp['alternate_url']
         }
+        print(employer_id)
         while True:
             params = {
                 'employer_id': employer_id,  # id работодателя
                 'page': page,  # Номер страницы
-                'per_page': 50  # Кол-во вакансий на 1 странице
+                'per_page': 50,  # Кол-во вакансий на 1 странице
             }
             req = requests.get('https://api.hh.ru/vacancies', params)
-            # print(req.json())
-            vacancies.extend(req.json()['items'])
+            # print(type(req.json()))
+
+            vacancies.extend(req.json().get('items'))
             page += 1
-            if page == 2:  # req.json()['pages']:
+            if page == 5:  # req.json()['pages']:  Если делать так, чтобы
+                # все вакансии выходили, постоянно падает как-будто переполняется
                 req.close()
                 data.append({
                     'employer_data': employer_data,
                     'vacancies': vacancies
                 })
                 break
+        print("Norm")
     return data
 
 
 def create_database(database_name: str, params: dict):
     """Создает базу данных с указанным именем и параметрами для конекта"""
-    conn = psycopg2.connect(dbname='postgres', **params)
+    # conn = psycopg2.connect(dbname='postgres', **params)
+    conn = psycopg2.connect(host='localhost',
+                            database='postgres',
+                            user='postgres',
+                            password='JutsU#69')
     conn.autocommit = True
     cur = conn.cursor()
-
+    # cur.execute(f"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity "
+    #             f"WHERE pg_stat_activity.datname = '{database_name}' "
+    #             f"AND pid <> pg_backend_pid()")
     cur.execute(f"DROP DATABASE {database_name}")
     cur.execute(f"CREATE DATABASE {database_name}")
 
     conn.close()
 
-    conn = psycopg2.connect(dbname=database_name, **params)
+    # conn = psycopg2.connect(dbname=database_name, **params)
+    conn = psycopg2.connect(host='localhost',
+                            database=f'{database_name}',
+                            user='postgres',
+                            password='JutsU#69')
 
     with conn.cursor() as cur:
         cur.execute("""
@@ -69,8 +83,8 @@ def create_database(database_name: str, params: dict):
                 vacancy_id SERIAL PRIMARY KEY,
                 employer_id INT REFERENCES employers(employer_id),
                 title VARCHAR NOT NULL,
-                salary_from INT DEFAULT 0,
-                salary_to INT DEFAULT 0,
+                salary_from INT,
+                salary_to INT,
                 currency VARCHAR(25) DEFAULT 'Не указано',
                 city VARCHAR(50) NOT NULL,
                 url_vacancies TEXT NOT NULL,
@@ -87,7 +101,11 @@ def create_database(database_name: str, params: dict):
 def save_data_to_database(data: list[dict[str, Any]], database_name: str, params: dict):
     """Сохраняет переданные данные в указанную базу данных"""
 
-    conn = psycopg2.connect(dbname=database_name, **params)
+    # conn = psycopg2.connect(dbname=database_name, **params)
+    conn = psycopg2.connect(host='localhost',
+                            database=f'{database_name}',
+                            user='postgres',
+                            password='JutsU#69')
 
     with conn.cursor() as cur:
         for employer in data:
@@ -105,17 +123,29 @@ def save_data_to_database(data: list[dict[str, Any]], database_name: str, params
             employer_id = cur.fetchone()[0]
             vacancies_all = employer['vacancies']
             for vacancy in vacancies_all:
+                if vacancy is None:
+                    continue
+                if vacancy.get('salary') is None:
+                    salary_from = None
+                    salary_to = None
+                    salary_currency = None
+                else:
+                    salary_from = vacancy.get('salary').get('from')
+                    salary_to = vacancy.get('salary').get('to')
+                    salary_currency = vacancy.get('salary').get('currency')
+
                 cur.execute(
                     """
                         INSERT INTO vacancies (employer_id, 
                         title, salary_from, salary_to, currency, city, 
                         url_vacancies, requirements, employment, experience)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                     (employer_id, vacancy['name'],
-                     vacancy.get('salary').get('from'), vacancy.get('salary').get('to'),
-                     vacancy.get('salary').get('currency'), vacancy['area']['name'],
+                     salary_from, salary_to, salary_currency, vacancy['area']['name'],
                      vacancy['alternate_url'], vacancy.get('snippet').get('requirement'),
                      vacancy.get('employment').get('name'),
                      vacancy.get('experience').get('name'))
                 )
+    conn.commit()
+    conn.close()
