@@ -56,8 +56,8 @@ def create_database(database_name: str, params: dict):
         cur.execute("""
             CREATE TABLE employers (
                 employer_id SERIAL PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                employer_is_hh INTEGER NOT NULL,
+                title_employer VARCHAR(255) NOT NULL,
+                employer_id_hh INTEGER NOT NULL,
                 HH_url TEXT NOT NULL,
                 site_employer TEXT
             )
@@ -69,14 +69,14 @@ def create_database(database_name: str, params: dict):
                 vacancy_id SERIAL PRIMARY KEY,
                 employer_id INT REFERENCES employers(employer_id),
                 title VARCHAR NOT NULL,
-                salary_from INT,
-                salary_to INT,
+                salary_from INT DEFAULT 0,
+                salary_to INT DEFAULT 0,
+                currency VARCHAR(25) DEFAULT 'Не указано',
                 city VARCHAR(50) NOT NULL,
                 url_vacancies TEXT NOT NULL,
                 requirements TEXT,
                 employment VARCHAR(50),
-                experience VARCHAR(50),
-                publish_date DATE                
+                experience VARCHAR(50)               
             )
         """)
 
@@ -86,3 +86,36 @@ def create_database(database_name: str, params: dict):
 
 def save_data_to_database(data: list[dict[str, Any]], database_name: str, params: dict):
     """Сохраняет переданные данные в указанную базу данных"""
+
+    conn = psycopg2.connect(dbname=database_name, **params)
+
+    with conn.cursor() as cur:
+        for employer in data:
+            employer_now = employer['employer_data']
+            cur.execute(
+                """
+                INSERT INTO employers (title_employer, 
+                employer_id_hh, HH_url, site_employer)
+                VALUES (%s, %s, %s, %s)
+                RETURNING employer_id
+                """,
+                (employer_now['name'], employer_now['id'],
+                 employer_now['url_hh'], employer_now.get('site'))
+            )
+            employer_id = cur.fetchone()[0]
+            vacancies_all = employer['vacancies']
+            for vacancy in vacancies_all:
+                cur.execute(
+                    """
+                        INSERT INTO vacancies (employer_id, 
+                        title, salary_from, salary_to, currency, city, 
+                        url_vacancies, requirements, employment, experience)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                    (employer_id, vacancy['name'],
+                     vacancy.get('salary').get('from'), vacancy.get('salary').get('to'),
+                     vacancy.get('salary').get('currency'), vacancy['area']['name'],
+                     vacancy['alternate_url'], vacancy.get('snippet').get('requirement'),
+                     vacancy.get('employment').get('name'),
+                     vacancy.get('experience').get('name'))
+                )
