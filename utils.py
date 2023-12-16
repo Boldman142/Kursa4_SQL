@@ -161,7 +161,8 @@ class DBMForm(ABC):
 
     @abstractmethod
     def get_all_vacancies(self):
-        """Получает список всех вакансий с указанием названия компании, названия вакансии и зарплаты и ссылки на вакансию."""
+        """Получает список всех вакансий с указанием названия компании,
+        названия вакансии и зарплаты и ссылки на вакансию."""
         pass
 
     @abstractmethod
@@ -171,25 +172,62 @@ class DBMForm(ABC):
 
     @abstractmethod
     def get_vacancies_with_higher_salary(self):
-        """Получает список всех вакансий, у которых зарплата выше средней по всем вакансиям."""
+        """Получает список всех вакансий, у которых зарплата выше
+        средней по всем вакансиям."""
         pass
 
     @abstractmethod
     def get_vacancies_with_keyword(self):
-        """Получает список всех вакансий, в названии которых содержатся переданные в метод слова, например python."""
+        """Получает список всех вакансий, в названии которых
+        содержатся переданные в метод слова, например python."""
         pass
 
 
 class DBManager(DBMForm):
 
-    def __init__(self):
-        pass
+    def __init__(self, connect):
+        self.conn = connect
 
     def get_companies_and_vacancies_count(self):
-        pass
+        with self.conn.cursor() as cur:
+            cur.execute("""SELECT title_employer, COUNT(*)
+            FROM vacancies
+            JOIN employers USING(employer_id)
+            GROUP BY title_employer""")
+            data = cur.fetchall()
+            print("Организация - количество вакансий")
+            num = 0
+            for i in data:
+                num += 1
+                print(f'{num}) {i[0]} - {i[1]}')
 
     def get_all_vacancies(self):
-        pass
+        with self.conn.cursor() as cur:
+            cur.execute("""SELECT (employers.title_employer, title, salary_from, salary_to, 
+                    currency, url_vacancies) FROM vacancies, employers
+            WHERE employers.employer_id = vacancies.employer_id
+            ORDER BY employers.title_employer""")
+            data = cur.fetchall()
+            num = 0
+            for i in data:
+                clear_data = i[0][1:-1].split(",")
+                num += 1
+                employer = clear_data[0]
+                vacant = clear_data[1]
+                salary_from = clear_data[2]
+                salary_to = clear_data[3]
+                cur = clear_data[4]
+                url = clear_data[5]
+                if len(cur) == 0:
+                    salary = 'оплата не указана'
+                elif (len(salary_from) != 0) and (len(salary_to) == 0):
+                    salary = f'оплата от {salary_from} {cur}'
+                elif (len(salary_from) == 0) and (len(salary_to) != 0):
+                    salary = f'оплата до {salary_to} {cur}'
+                else:
+                    salary = f'оплата от {salary_from} до {salary_to} {cur}'
+                print(f'{num}) {employer} - Требуется {vacant}, {salary}, '
+                      f'ссылка на вакансию - {url}')
 
     def get_avg_salary(self):
         pass
@@ -199,3 +237,17 @@ class DBManager(DBMForm):
 
     def get_vacancies_with_keyword(self):
         pass
+
+
+try:
+    conn_ = psycopg2.connect(host='localhost',
+                             database='head_hunt',
+                             user='postgres',
+                             password='JutsU#69')
+    a = DBManager(conn_)
+    # a.get_companies_and_vacancies_count()
+    a.get_all_vacancies()
+    # print(a.get_companies_and_vacancies_count())
+
+finally:
+    conn_.close()

@@ -17,10 +17,10 @@ def main():
         1373  # Аэрофлот
     ]
     params = config()
-    data = get_hh_data(employer_ids)
-    # print(data)
-    create_database('head_hunt', params)
-    save_data_to_database(data, 'head_hunt', params)
+    # data = get_hh_data(employer_ids)
+    #  print(data)
+    # create_database('head_hunt', params)
+    # save_data_to_database(data, 'head_hunt', params)
 
 
 if __name__ == "__main__":
