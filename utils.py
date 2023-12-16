@@ -177,7 +177,7 @@ class DBMForm(ABC):
         pass
 
     @abstractmethod
-    def get_vacancies_with_keyword(self):
+    def get_vacancies_with_keyword(self, text):
         """Получает список всех вакансий, в названии которых
         содержатся переданные в метод слова, например python."""
         pass
@@ -230,12 +230,22 @@ class DBManager(DBMForm):
                       f'ссылка на вакансию - {url}')
 
     def get_avg_salary(self):
-        pass
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """SELECT AVG(salary_from) as avg_from, 
+                AVG(salary_to) as avg_to, currency 
+                FROM vacancies 
+                WHERE salary_to IS NOT NULL AND salary_from IS NOT NULL
+                GROUP BY currency""")
+            data = cur.fetchall()
+            for i in range(len(data)):
+                print(f'Средняя оплата в {data[i][2]}: от - {round(data[i][0])}; '
+                      f'до - {round(data[i][1])}')
 
     def get_vacancies_with_higher_salary(self):
         pass
 
-    def get_vacancies_with_keyword(self):
+    def get_vacancies_with_keyword(self, text):
         pass
 
 
@@ -246,7 +256,8 @@ try:
                              password='JutsU#69')
     a = DBManager(conn_)
     # a.get_companies_and_vacancies_count()
-    a.get_all_vacancies()
+    # a.get_all_vacancies()
+    a.get_avg_salary()
     # print(a.get_companies_and_vacancies_count())
 
 finally:
