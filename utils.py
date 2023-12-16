@@ -246,7 +246,19 @@ class DBManager(DBMForm):
         pass
 
     def get_vacancies_with_keyword(self, text):
-        pass
+        with self.conn.cursor() as cur:
+            text_low = text.lower()
+            text_hight = text.capitalize()
+            cur.execute(
+                f"""SELECT * FROM vacancies
+                WHERE title LIKE '%{text_low}%'
+                UNION
+                SELECT * FROM vacancies
+                WHERE title LIKE '%{text_hight}%'
+                ORDER BY vacancy_id"""
+            )
+            data = cur.fetchall()
+            print(data)
 
 
 try:
@@ -257,7 +269,8 @@ try:
     a = DBManager(conn_)
     # a.get_companies_and_vacancies_count()
     # a.get_all_vacancies()
-    a.get_avg_salary()
+    # a.get_avg_salary()
+    a.get_vacancies_with_keyword("python")
     # print(a.get_companies_and_vacancies_count())
 
 finally:
