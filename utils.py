@@ -162,7 +162,7 @@ class DBMForm(ABC):
     @abstractmethod
     def get_all_vacancies(self):
         """Получает список всех вакансий с указанием названия компании,
-        названия вакансии и зарплаты и ссылки на вакансию."""
+        названия вакансии, зарплаты и ссылки на вакансию."""
         pass
 
     @abstractmethod
@@ -279,9 +279,9 @@ class DBManager(DBMForm):
                 experience = clear_data[9]
                 if cur is None:
                     salary = 'оплата не указана'
-                elif (salary_from is None) and (salary_to is not None):
-                    salary = f'оплата от {salary_from} {cur}'
                 elif (salary_from is not None) and (salary_to is None):
+                    salary = f'оплата от {salary_from} {cur}'
+                elif (salary_from is None) and (salary_to is not None):
                     salary = f'оплата до {salary_to} {cur}'
                 else:
                     salary = f'оплата от {salary_from} до {salary_to} {cur}'
@@ -301,7 +301,8 @@ try:
     # a.get_companies_and_vacancies_count()
     # a.get_all_vacancies()
     # a.get_avg_salary()
-    a.get_vacancies_with_keyword("механик")
+    # a.get_vacancies_with_higher_salary
+    # a.get_vacancies_with_keyword("механик")
     # print(a.get_companies_and_vacancies_count())
 
 finally:
