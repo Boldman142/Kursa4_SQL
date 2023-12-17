@@ -243,6 +243,9 @@ class DBManager(DBMForm):
                       f'до - {round(data[i][1])}')
 
     def get_vacancies_with_higher_salary(self):
+        # SELECT * FROM vacancies
+        # WHERE salary_from > AVG(salary_from) AND salary_to > AVG(salary_to)
+
         pass
 
     def get_vacancies_with_keyword(self, text):
@@ -250,15 +253,43 @@ class DBManager(DBMForm):
             text_low = text.lower()
             text_hight = text.capitalize()
             cur.execute(
-                f"""SELECT * FROM vacancies
+                f"""SELECT employers.title_employer, title, salary_from, salary_to, 
+                currency, city, requirements, url_vacancies, employment, experience 
+                FROM vacancies, employers
                 WHERE title LIKE '%{text_low}%'
                 UNION
-                SELECT * FROM vacancies
-                WHERE title LIKE '%{text_hight}%'
-                ORDER BY vacancy_id"""
+                SELECT employers.title_employer, title, salary_from, salary_to, 
+                currency, city, requirements, url_vacancies, employment, experience 
+                FROM vacancies, employers
+                WHERE title LIKE '%{text_hight}%'"""
             )
             data = cur.fetchall()
-            print(data)
+            num = 0
+            for clear_data in data:
+                num += 1
+                employer = clear_data[0]
+                vacant = clear_data[1]
+                salary_from = clear_data[2]
+                salary_to = clear_data[3]
+                cur = clear_data[4]
+                city = clear_data[5]
+                requirements = clear_data[6]
+                url = clear_data[7]
+                employment = clear_data[8]
+                experience = clear_data[9]
+                if cur is None:
+                    salary = 'оплата не указана'
+                elif (salary_from is None) and (salary_to is not None):
+                    salary = f'оплата от {salary_from} {cur}'
+                elif (salary_from is not None) and (salary_to is None):
+                    salary = f'оплата до {salary_to} {cur}'
+                else:
+                    salary = f'оплата от {salary_from} до {salary_to} {cur}'
+                print(f'{num}) {employer} - Требуется {vacant}, {salary}, '
+                      f'в городе {city}, \nТребования: {requirements} '
+                      f'\nнеобходимый опыт: {experience}, {employment}. '
+                      f'ссылка на вакансию - {url}')
+
 
 
 try:
@@ -270,7 +301,7 @@ try:
     # a.get_companies_and_vacancies_count()
     # a.get_all_vacancies()
     # a.get_avg_salary()
-    a.get_vacancies_with_keyword("python")
+    a.get_vacancies_with_keyword("механик")
     # print(a.get_companies_and_vacancies_count())
 
 finally:
